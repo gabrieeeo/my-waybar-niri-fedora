@@ -1,0 +1,107 @@
+[
+  {
+    "layer": "top",
+    "position": "top",
+    "height": 24,
+    "spacing": 5,
+    "modules-left": [
+      "niri/workspaces"
+    ],
+    "modules-center": [
+      "clock"
+    ],
+    "modules-right": [
+      "idle_inhibitor",
+      "temperature",
+      "cpu",
+      "memory",
+      "network",
+      "pulseaudio",
+      "tray"
+    ],
+    "niri/workspaces": {
+      "format": "{icon}",
+      "format-icons": {
+        "focused": "●",
+        "active": "●",
+        "default": "○",
+        "empty": "○"
+      }
+    },
+    "mpris": {
+      "format": "{status_icon} {dynamic}",
+      "format-paused": "{status_icon} {dynamic}",
+      "format-stopped": "",
+      "dynamic-len": 40,
+      "status-icons": {
+        "playing": "",
+        "paused": "",
+        "stopped": ""
+      }
+    },
+    "idle_inhibitor": {
+      "format": "{icon}",
+      "format-icons": {
+        "activated": "",
+        "deactivated": ""
+      }
+    },
+    "tray": {
+      "icon-size": 16,
+      "show-passive-items": true,
+      "spacing": 10
+    },
+    "clock": {
+      "format": "{:%A %B %d %H:%M}",
+      "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+    },
+    "cpu": {
+      "interval": 2,
+      "format": "  {usage}%"
+    },
+    "memory": {
+      "interval": 2,
+      "format": " {}%"
+    },
+    "temperature": {
+      "interval": 2,
+      "hwmon-path": [
+        "/sys/class/hwmon/hwmon1/temp1_input",
+        "/sys/class/hwmon/hwmon0/temp1_input"
+      ],
+      "critical-threshold": 80,
+      "format-critical": "{icon} {temperatureC}°C",
+      "format": "{icon} {temperatureC}°C",
+      "format-icons": [
+        "",
+        "",
+        ""
+      ]
+    },
+    "network": {
+      "format-wifi": " {essid} ({signalStrength}%)",
+      "format-ethernet": " {ifname}",
+      "tooltip-format": " {ifname} via {gwaddr}",
+      "format-linked": " {ifname} (No IP)",
+      "format-disconnected": " {ifname}",
+      "on-click": "nm-connection-editor"
+    },
+    "pulseaudio": {
+      "scroll-step": 5,
+      "format": "{icon}  {volume}% {format_source}",
+      "format-bluetooth": " {icon} {volume}% {format_source}",
+      "format-bluetooth-muted": "  {icon} {format_source}",
+      "format-muted": "  {format_source}",
+      "format-source": " {volume}%",
+      "format-source-muted": "",
+      "format-icons": {
+        "default": [
+          "",
+          "",
+          ""
+        ]
+      },
+      "on-click": "pavucontrol"
+    }
+  }
+]

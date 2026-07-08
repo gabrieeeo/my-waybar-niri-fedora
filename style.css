@@ -1,0 +1,91 @@
+* {
+  font-size: 16px;
+  min-height: 0;
+}
+
+window#waybar {
+  background: rgba(255, 255, 255, 0.5);
+  color: rgb(0, 0, 0);
+}
+
+tooltip {
+  background: #000000;
+}
+tooltip label {
+  color: white;
+}
+
+#workspaces,
+#clock,
+#mpris,
+#idle_inhibitor,
+#temperature,
+#cpu,
+#memory,
+#network,
+#pulseaudio {
+  margin: 2px;
+  padding: 0 6px;
+  color: #000000;
+  border-radius: 1rem;
+}
+
+#tray {
+  margin-right: 10px;
+  padding: 0px;
+  color: #000000;
+}
+
+#workspaces button {
+  padding: 0 5px;
+  background: transparent;
+  color: #000000;
+  border: none;
+  box-shadow: none;
+  border-radius: 1rem;
+}
+
+#workspaces button:hover {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.modules-left > widget:first-child > #workspaces {
+  margin-left: 0;
+}
+
+.modules-right > widget:last-child > * {
+  margin-right: 0;
+}
+
+#clock {
+  font-size: 14px;
+}
+
+label:focus {
+  background-color: #000000;
+}
+
+#network.disconnected {
+  background-color: #f53c3c;
+}
+
+#temperature.critical {
+  background-color: #eb4d4b;
+}
+
+#idle_inhibitor.activated {
+  background-color: #ecf0f1;
+  color: #2d3436;
+}
+
+#tray > .passive {
+  -gtk-icon-effect: none;
+}
+
+#tray > .needs-attention {
+  -gtk-icon-effect: highlight;
+  background-color: #eb4d4b;
+}
