@@ -180,7 +180,7 @@ class CalendarPopup(Gtk.Application):
         Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.LEFT, False)
         Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.RIGHT, False)
         Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.BOTTOM, False)
-        Gtk4LayerShell.set_margin(self.window, Gtk4LayerShell.Edge.TOP, 30)
+        Gtk4LayerShell.set_margin(self.window, Gtk4LayerShell.Edge.TOP, 1)
         Gtk4LayerShell.set_keyboard_mode(
             self.window,
             Gtk4LayerShell.KeyboardMode.ON_DEMAND,
