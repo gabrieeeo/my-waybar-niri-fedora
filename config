@@ -17,6 +17,7 @@
       "memory",
       "network",
       "pulseaudio",
+      "custom/power",
       "tray"
     ],
     "niri/workspaces": {
@@ -98,6 +99,11 @@
         ]
       },
       "on-click": "pavucontrol"
+    },
+    "custom/power": {
+      "format": "⏻",
+      "tooltip": false,
+      "on-click": "env GSK_RENDERER=gl /home/gabriel/.config/waybar/scripts/power-menu.py"
     }
   }
 ]
