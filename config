@@ -53,7 +53,8 @@
     },
     "clock": {
       "format": "{:%A %B %d %H:%M}",
-      "on-click": "env GSK_RENDERER=gl /home/gabriel/.config/waybar/scripts/calendar-popup.py"
+      "on-click": "env GSK_RENDERER=gl /home/gabriel/.config/waybar/scripts/calendar-popup.py",
+      "tooltip": false
     },
     "cpu": {
       "interval": 2,

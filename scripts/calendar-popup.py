@@ -67,6 +67,7 @@ class CalendarPopup(Gtk.Application):
         self.year = self.today.year
         self.month = self.today.month
         self.visible = False
+        self.animation_source = None
         self.window = None
         self.click_shield = None
         self.month_label = None
@@ -154,16 +155,55 @@ class CalendarPopup(Gtk.Application):
         return True
 
     def show_popup(self):
+        self.stop_animation()
         self.visible = True
         if self.click_shield is not None:
             self.click_shield.present()
+        self.window.set_opacity(0.0)
         self.window.present()
+        self.animate_opacity(0.0, 1.0)
 
     def hide_popup(self):
+        self.stop_animation()
         self.visible = False
+        self.animate_opacity(1.0, 0.0, self.finish_hide)
+
+    def finish_hide(self):
         if self.click_shield is not None:
             self.click_shield.set_visible(False)
         self.window.set_visible(False)
+
+    def stop_animation(self):
+        if self.animation_source is not None:
+            GLib.source_remove(self.animation_source)
+            self.animation_source = None
+
+    def animate_opacity(self, start, end, done=None):
+        duration_ms = 250
+        frame_ms = 16
+        steps = max(1, duration_ms // frame_ms)
+        current_step = 0
+
+        def ease_out_cubic(value):
+            return 1 - pow(1 - value, 3)
+
+        def tick():
+            nonlocal current_step
+            current_step += 1
+            progress = min(1.0, current_step / steps)
+            eased = ease_out_cubic(progress)
+            opacity = start + (end - start) * eased
+            self.window.set_opacity(opacity)
+
+            if progress >= 1.0:
+                self.animation_source = None
+                self.window.set_opacity(end)
+                if done is not None:
+                    done()
+                return False
+            return True
+
+        self.animation_source = GLib.timeout_add(frame_ms, tick)
 
     def quit_from_signal(self):
         self.cleanup_pid()

@@ -8,13 +8,6 @@ window#waybar {
   color: rgb(0, 0, 0);
 }
 
-tooltip {
-  background: #000000;
-}
-tooltip label {
-  color: white;
-}
-
 #workspaces,
 #clock,
 #mpris,
