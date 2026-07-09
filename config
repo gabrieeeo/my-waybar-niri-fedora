@@ -53,6 +53,7 @@
     },
     "clock": {
       "format": "{:%A %B %d %H:%M}",
+      "on-click": "../waybar/scripts/calendar-popup.py",
       "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
     },
     "cpu": {
@@ -70,13 +71,8 @@
         "/sys/class/hwmon/hwmon0/temp1_input"
       ],
       "critical-threshold": 80,
-      "format-critical": "{icon} {temperatureC}°C",
-      "format": "{icon} {temperatureC}°C",
-      "format-icons": [
-        "",
-        "",
-        ""
-      ]
+      "format-critical": " {temperatureC}°C",
+      "format": " {temperatureC}°C"
     },
     "network": {
       "format-wifi": " {essid} ({signalStrength}%)",
