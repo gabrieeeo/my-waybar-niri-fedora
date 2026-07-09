@@ -3,12 +3,26 @@ import calendar
 import os
 import signal
 import sys
+from ctypes import CDLL
+from ctypes.util import find_library
 from datetime import date
 
 import gi
 
+GTK4_LAYER_SHELL_LIB = find_library("gtk4-layer-shell")
+if GTK4_LAYER_SHELL_LIB:
+    CDLL(GTK4_LAYER_SHELL_LIB)
+
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gdk, Gtk
+gi.require_version("Gdk", "4.0")
+gi.require_version("GLibUnix", "2.0")
+from gi.repository import Gdk, GLib, GLibUnix, Gtk
+
+try:
+    gi.require_version("Gtk4LayerShell", "1.0")
+    from gi.repository import Gtk4LayerShell
+except (ImportError, ValueError):
+    Gtk4LayerShell = None
 
 
 PID_FILE = "/tmp/waybar-calendar-popup.pid"
@@ -37,7 +51,7 @@ def toggle_existing_instance():
     try:
         with open(PID_FILE, "r", encoding="utf-8") as pid_file:
             pid = int(pid_file.read().strip())
-        os.kill(pid, signal.SIGTERM)
+        os.kill(pid, signal.SIGUSR1)
         sys.exit(0)
     except (OSError, ValueError):
         try:
@@ -52,13 +66,26 @@ class CalendarPopup(Gtk.Application):
         self.today = date.today()
         self.year = self.today.year
         self.month = self.today.month
+        self.visible = False
         self.window = None
+        self.click_shield = None
         self.month_label = None
         self.grid = None
 
     def do_activate(self):
+        self.hold()
         self.install_css()
         self.write_pid()
+        GLibUnix.signal_add(
+            GLib.PRIORITY_DEFAULT,
+            signal.SIGUSR1,
+            self.toggle,
+        )
+        GLibUnix.signal_add(
+            GLib.PRIORITY_DEFAULT,
+            signal.SIGTERM,
+            self.quit_from_signal,
+        )
 
         self.window = Gtk.ApplicationWindow(application=self)
         self.window.set_title("Calendario")
@@ -66,6 +93,8 @@ class CalendarPopup(Gtk.Application):
         self.window.set_resizable(False)
         self.window.set_default_size(360, 380)
         self.window.connect("close-request", self.on_close)
+        self.configure_layer_shell()
+        self.create_click_shield()
 
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         root.add_css_class("calendar-shell")
@@ -115,7 +144,82 @@ class CalendarPopup(Gtk.Application):
 
         self.window.set_child(root)
         self.render_calendar()
+        self.show_popup()
+
+    def toggle(self):
+        if self.visible:
+            self.hide_popup()
+        else:
+            self.show_popup()
+        return True
+
+    def show_popup(self):
+        self.visible = True
+        if self.click_shield is not None:
+            self.click_shield.present()
         self.window.present()
+
+    def hide_popup(self):
+        self.visible = False
+        if self.click_shield is not None:
+            self.click_shield.set_visible(False)
+        self.window.set_visible(False)
+
+    def quit_from_signal(self):
+        self.cleanup_pid()
+        self.quit()
+        return False
+
+    def configure_layer_shell(self):
+        if Gtk4LayerShell is None:
+            return
+
+        Gtk4LayerShell.init_for_window(self.window)
+        Gtk4LayerShell.set_layer(self.window, Gtk4LayerShell.Layer.OVERLAY)
+        Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.TOP, True)
+        Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.LEFT, False)
+        Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.RIGHT, False)
+        Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.BOTTOM, False)
+        Gtk4LayerShell.set_margin(self.window, Gtk4LayerShell.Edge.TOP, 30)
+        Gtk4LayerShell.set_keyboard_mode(
+            self.window,
+            Gtk4LayerShell.KeyboardMode.ON_DEMAND,
+        )
+
+    def create_click_shield(self):
+        if Gtk4LayerShell is None:
+            return
+
+        self.click_shield = Gtk.ApplicationWindow(application=self)
+        self.click_shield.set_title("Calendar click shield")
+        self.click_shield.set_decorated(False)
+        self.click_shield.add_css_class("click-shield")
+
+        Gtk4LayerShell.init_for_window(self.click_shield)
+        Gtk4LayerShell.set_layer(self.click_shield, Gtk4LayerShell.Layer.TOP)
+        for edge in (
+            Gtk4LayerShell.Edge.TOP,
+            Gtk4LayerShell.Edge.BOTTOM,
+            Gtk4LayerShell.Edge.LEFT,
+            Gtk4LayerShell.Edge.RIGHT,
+        ):
+            Gtk4LayerShell.set_anchor(self.click_shield, edge, True)
+        Gtk4LayerShell.set_exclusive_zone(self.click_shield, -1)
+        Gtk4LayerShell.set_keyboard_mode(
+            self.click_shield,
+            Gtk4LayerShell.KeyboardMode.NONE,
+        )
+
+        shield_area = Gtk.Box()
+        shield_area.set_hexpand(True)
+        shield_area.set_vexpand(True)
+
+        click = Gtk.GestureClick()
+        click.connect("pressed", lambda *_args: self.hide_popup())
+        shield_area.add_controller(click)
+
+        self.click_shield.set_child(shield_area)
+        self.click_shield.set_visible(False)
 
     def render_calendar(self):
         child = self.grid.get_first_child()
@@ -171,8 +275,8 @@ class CalendarPopup(Gtk.Application):
         self.render_calendar()
 
     def on_close(self, _window):
-        self.cleanup_pid()
-        return False
+        self.hide_popup()
+        return True
 
     def write_pid(self):
         with open(PID_FILE, "w", encoding="utf-8") as pid_file:
@@ -190,6 +294,10 @@ class CalendarPopup(Gtk.Application):
             background: transparent;
         }
 
+        .click-shield {
+            background: alpha(#000000, 0.01);
+        }
+
         .calendar-shell {
             margin: 10px;
             padding: 18px;
@@ -197,7 +305,6 @@ class CalendarPopup(Gtk.Application):
             color: #f4f6fb;
             border: 1px solid alpha(#ffffff, 0.10);
             border-radius: 18px;
-            box-shadow: 0 18px 48px alpha(#000000, 0.45);
         }
 
         .calendar-header {
