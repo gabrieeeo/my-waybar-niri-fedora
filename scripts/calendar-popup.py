@@ -341,8 +341,8 @@ class CalendarPopup(Gtk.Application):
         .calendar-shell {
             margin: 10px;
             padding: 18px;
-            background: alpha(#111318, 0.96);
-            color: #f4f6fb;
+            background: alpha(#18181b, 0.92);
+            color: #f5f5f7;
             border: 1px solid alpha(#ffffff, 0.10);
             border-radius: 18px;
         }
@@ -362,14 +362,14 @@ class CalendarPopup(Gtk.Application):
             padding: 0;
             border-radius: 999px;
             border: 1px solid alpha(#ffffff, 0.08);
-            background: alpha(#ffffff, 0.07);
-            color: #f4f6fb;
+            background: alpha(#ffffff, 0.08);
+            color: #f5f5f7;
             font-size: 22px;
         }
 
         .nav-button:hover,
         .today-button:hover {
-            background: alpha(#ffffff, 0.13);
+            background: alpha(#ffffff, 0.14);
         }
 
         .calendar-grid {
@@ -377,7 +377,7 @@ class CalendarPopup(Gtk.Application):
         }
 
         .weekday {
-            color: #9aa4b2;
+            color: #8e8e93;
             font-size: 12px;
             font-weight: 700;
         }
@@ -390,29 +390,29 @@ class CalendarPopup(Gtk.Application):
             border: 0;
             border-radius: 12px;
             background: transparent;
-            color: #eef2f8;
+            color: #f5f5f7;
             font-weight: 600;
         }
 
         .day:hover {
-            background: alpha(#ffffff, 0.09);
+            background: alpha(#ffffff, 0.10);
         }
 
         .weekend {
-            color: #8fc7ff;
+            color: #0a84ff;
         }
 
         .outside-month {
-            color: #525b68;
+            color: #636366;
         }
 
         .today {
-            background: #d6ff62;
-            color: #151712;
+            background: alpha(#0a84ff, 0.30);
+            color: #ffffff;
         }
 
         .today:hover {
-            background: #e1ff83;
+            background: alpha(#0a84ff, 0.42);
         }
 
         .calendar-footer {
@@ -420,7 +420,7 @@ class CalendarPopup(Gtk.Application):
         }
 
         .date-hint {
-            color: #9aa4b2;
+            color: #8e8e93;
             font-size: 13px;
         }
 
@@ -429,8 +429,8 @@ class CalendarPopup(Gtk.Application):
             padding: 0 14px;
             border-radius: 999px;
             border: 1px solid alpha(#ffffff, 0.08);
-            background: alpha(#ffffff, 0.07);
-            color: #f4f6fb;
+            background: alpha(#ffffff, 0.08);
+            color: #f5f5f7;
             font-weight: 700;
         }
         """
