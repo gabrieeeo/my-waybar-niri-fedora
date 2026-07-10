@@ -16,7 +16,7 @@ window#waybar {
 #cpu,
 #memory,
 #network,
-#pulseaudio {
+#pulseaudio{
   margin: 2px;
   padding: 0 6px;
   color: #f5f5f7;

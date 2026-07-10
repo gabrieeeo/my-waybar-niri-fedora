@@ -5,6 +5,9 @@ import subprocess
 import sys
 from ctypes import CDLL
 from ctypes.util import find_library
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Sequence
 
 import gi
 
@@ -24,30 +27,58 @@ except (ImportError, ValueError):
     Gtk4LayerShell = None
 
 
-PID_FILE = "/tmp/waybar-power-menu.pid"
-ACTIONS = [
-    ("Desligar", ["systemctl", "poweroff"], "system-shutdown-symbolic", "danger"),
-    ("Reiniciar", ["systemctl", "reboot"], "system-reboot-symbolic", None),
-    ("Suspender", ["systemctl", "suspend"], "weather-clear-night-symbolic", None),
-    ("Bloquear", ["swaylock", "-f"], "changes-prevent-symbolic", None),
-    ("Sair", ["niri", "msg", "action", "quit"], "system-log-out-symbolic", None),
-]
+PID_FILE = Path("/tmp/waybar-power-menu.pid")
+ANIMATION_DURATION_MS = 160
+ANIMATION_FRAME_MS = 16
+
+
+@dataclass(frozen=True)
+class PowerAction:
+    label: str
+    command: Sequence[str]
+    icon_name: str
+    css_class: str | None = None
+
+
+ACTIONS = (
+    PowerAction(
+        "Desligar",
+        ("systemctl", "poweroff"),
+        "system-shutdown-symbolic",
+        "danger",
+    ),
+    PowerAction("Reiniciar", ("systemctl", "reboot"), "system-reboot-symbolic"),
+    PowerAction(
+        "Suspender",
+        ("/home/gabriel/.config/waybar/scripts/lock-and-suspend.sh",),
+        "weather-clear-night-symbolic",
+    ),
+    PowerAction(
+        "Bloquear",
+        ("/home/gabriel/.config/waybar/scripts/lock-screen.sh",),
+        "changes-prevent-symbolic",
+    ),
+    PowerAction("Sair", ("niri", "msg", "action", "quit"), "system-log-out-symbolic"),
+)
 
 
 def toggle_existing_instance():
-    if not os.path.exists(PID_FILE):
+    if not PID_FILE.exists():
         return
 
     try:
-        with open(PID_FILE, "r", encoding="utf-8") as pid_file:
-            pid = int(pid_file.read().strip())
+        pid = int(PID_FILE.read_text(encoding="utf-8").strip())
         os.kill(pid, signal.SIGUSR1)
         sys.exit(0)
     except (OSError, ValueError):
-        try:
-            os.unlink(PID_FILE)
-        except OSError:
-            pass
+        remove_pid_file()
+
+
+def remove_pid_file() -> None:
+    try:
+        PID_FILE.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 class PowerMenu(Gtk.Application):
@@ -80,33 +111,36 @@ class PowerMenu(Gtk.Application):
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         root.add_css_class("power-shell")
 
-        for label, command, icon_name, style_class in ACTIONS:
-            button = Gtk.Button()
-            button.add_css_class("power-action")
-            if style_class is not None:
-                button.add_css_class(style_class)
-            button.connect("clicked", self.run_action, command)
-
-            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-            row.set_valign(Gtk.Align.CENTER)
-
-            icon = Gtk.Image.new_from_icon_name(icon_name)
-            icon.set_pixel_size(26)
-            icon.add_css_class("action-icon")
-
-            text = Gtk.Label(label=label)
-            text.set_xalign(0)
-            text.set_hexpand(True)
-            text.add_css_class("action-label")
-
-            row.append(icon)
-            row.append(text)
-            button.set_child(row)
-            root.append(button)
+        for action in ACTIONS:
+            root.append(self.create_action_button(action))
 
         return root
 
-    def run_action(self, _button, command):
+    def create_action_button(self, action: PowerAction) -> Gtk.Button:
+        button = Gtk.Button()
+        button.add_css_class("power-action")
+        if action.css_class:
+            button.add_css_class(action.css_class)
+        button.connect("clicked", self.run_action, action.command)
+
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        row.set_valign(Gtk.Align.CENTER)
+
+        icon = Gtk.Image.new_from_icon_name(action.icon_name)
+        icon.set_pixel_size(26)
+        icon.add_css_class("action-icon")
+
+        label = Gtk.Label(label=action.label)
+        label.set_xalign(0)
+        label.set_hexpand(True)
+        label.add_css_class("action-label")
+
+        row.append(icon)
+        row.append(label)
+        button.set_child(row)
+        return button
+
+    def run_action(self, _button: Gtk.Button, command: Sequence[str]) -> None:
         subprocess.Popen(command)
         self.cleanup_pid()
         self.quit()
@@ -142,20 +176,20 @@ class PowerMenu(Gtk.Application):
             GLib.source_remove(self.animation_source)
             self.animation_source = None
 
-    def animate_opacity(self, start, end, done=None):
-        duration_ms = 160
-        frame_ms = 16
-        steps = max(1, duration_ms // frame_ms)
+    def animate_opacity(
+        self,
+        start: float,
+        end: float,
+        done: Callable[[], None] | None = None,
+    ) -> None:
+        steps = max(1, ANIMATION_DURATION_MS // ANIMATION_FRAME_MS)
         current_step = 0
-
-        def ease_out_cubic(value):
-            return 1 - pow(1 - value, 3)
 
         def tick():
             nonlocal current_step
             current_step += 1
             progress = min(1.0, current_step / steps)
-            eased = ease_out_cubic(progress)
+            eased = 1 - (1 - progress) ** 3
             opacity = start + (end - start) * eased
             self.window.set_opacity(opacity)
 
@@ -167,7 +201,7 @@ class PowerMenu(Gtk.Application):
                 return False
             return True
 
-        self.animation_source = GLib.timeout_add(frame_ms, tick)
+        self.animation_source = GLib.timeout_add(ANIMATION_FRAME_MS, tick)
 
     def quit_from_signal(self):
         self.cleanup_pid()
@@ -180,10 +214,7 @@ class PowerMenu(Gtk.Application):
 
         Gtk4LayerShell.init_for_window(self.window)
         Gtk4LayerShell.set_layer(self.window, Gtk4LayerShell.Layer.OVERLAY)
-        Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.TOP, True)
-        Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.RIGHT, True)
-        Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.LEFT, False)
-        Gtk4LayerShell.set_anchor(self.window, Gtk4LayerShell.Edge.BOTTOM, False)
+        self.set_anchors(self.window, top=True, right=True)
         Gtk4LayerShell.set_margin(self.window, Gtk4LayerShell.Edge.TOP, 1)
         Gtk4LayerShell.set_margin(self.window, Gtk4LayerShell.Edge.RIGHT, 8)
         Gtk4LayerShell.set_keyboard_mode(
@@ -202,13 +233,13 @@ class PowerMenu(Gtk.Application):
 
         Gtk4LayerShell.init_for_window(self.click_shield)
         Gtk4LayerShell.set_layer(self.click_shield, Gtk4LayerShell.Layer.TOP)
-        for edge in (
-            Gtk4LayerShell.Edge.TOP,
-            Gtk4LayerShell.Edge.BOTTOM,
-            Gtk4LayerShell.Edge.LEFT,
-            Gtk4LayerShell.Edge.RIGHT,
-        ):
-            Gtk4LayerShell.set_anchor(self.click_shield, edge, True)
+        self.set_anchors(
+            self.click_shield,
+            top=True,
+            right=True,
+            bottom=True,
+            left=True,
+        )
         Gtk4LayerShell.set_exclusive_zone(self.click_shield, -1)
         Gtk4LayerShell.set_keyboard_mode(
             self.click_shield,
@@ -226,19 +257,26 @@ class PowerMenu(Gtk.Application):
         self.click_shield.set_child(shield_area)
         self.click_shield.set_visible(False)
 
+    @staticmethod
+    def set_anchors(window, **anchors: bool) -> None:
+        edges = {
+            "top": Gtk4LayerShell.Edge.TOP,
+            "right": Gtk4LayerShell.Edge.RIGHT,
+            "bottom": Gtk4LayerShell.Edge.BOTTOM,
+            "left": Gtk4LayerShell.Edge.LEFT,
+        }
+        for name, edge in edges.items():
+            Gtk4LayerShell.set_anchor(window, edge, anchors.get(name, False))
+
     def on_close(self, _window):
         self.hide_popup()
         return True
 
     def write_pid(self):
-        with open(PID_FILE, "w", encoding="utf-8") as pid_file:
-            pid_file.write(str(os.getpid()))
+        PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
 
     def cleanup_pid(self):
-        try:
-            os.unlink(PID_FILE)
-        except OSError:
-            pass
+        remove_pid_file()
 
     def install_css(self):
         css = b"""
@@ -300,7 +338,6 @@ class PowerMenu(Gtk.Application):
             provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
         )
-
 
 if __name__ == "__main__":
     toggle_existing_instance()
