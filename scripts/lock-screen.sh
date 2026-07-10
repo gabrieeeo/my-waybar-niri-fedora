@@ -13,11 +13,20 @@ fi
 
 if [[ -n "$wallpaper" && -f "$wallpaper" ]]; then
     mkdir -p "$cache_dir"
-    # Reduzir antes de desfocar mantém o bloqueio ágil mesmo com wallpapers 4K/6K.
-    if magick "$wallpaper" -resize 25% -blur 0x12 -resize 400% "$blurred_wallpaper"; then
-        swaylock -f --config "$config_dir/swaylock.conf" --image "$blurred_wallpaper" --scaling fill "$@"
-        exit
+
+    if [[ -f "$blurred_wallpaper" && "$blurred_wallpaper" -nt "$wallpaper" ]]; then
+        exec swaylock -f --config "$config_dir/swaylock.conf" --image "$blurred_wallpaper" --scaling fill "$@"
     fi
+
+    # Não atrasa a tela de bloqueio ao trocar de wallpaper. O cache é usado na
+    # próxima execução, quando a imagem desfocada já estiver pronta.
+    cache_file="${blurred_wallpaper}.tmp"
+    (
+        magick "$wallpaper" -resize 25% -blur 0x12 -resize 400% "$cache_file" \
+            && mv -f "$cache_file" "$blurred_wallpaper"
+    ) &
+
+    exec swaylock -f --config "$config_dir/swaylock.conf" --image "$wallpaper" --scaling fill "$@"
 fi
 
-swaylock -f --config "$config_dir/swaylock.conf" "$@"
+exec swaylock -f --config "$config_dir/swaylock.conf" "$@"
