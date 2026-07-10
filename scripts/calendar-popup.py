@@ -5,7 +5,7 @@ import signal
 import sys
 from ctypes import CDLL
 from ctypes.util import find_library
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import gi
 
@@ -71,6 +71,9 @@ class CalendarPopup(Gtk.Application):
         self.window = None
         self.click_shield = None
         self.month_label = None
+        self.year_label = None
+        self.date_label = None
+        self.time_label = None
         self.grid = None
 
     def do_activate(self):
@@ -87,6 +90,7 @@ class CalendarPopup(Gtk.Application):
             signal.SIGTERM,
             self.quit_from_signal,
         )
+        self.schedule_midnight_refresh()
 
         self.window = Gtk.ApplicationWindow(application=self)
         self.window.set_title("Calendario")
@@ -103,20 +107,29 @@ class CalendarPopup(Gtk.Application):
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         header.add_css_class("calendar-header")
 
+        title = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        title.set_hexpand(True)
+
+        self.month_label = Gtk.Label()
+        self.month_label.set_valign(Gtk.Align.BASELINE)
+        self.month_label.add_css_class("month-title")
+
+        self.year_label = Gtk.Label()
+        self.year_label.set_valign(Gtk.Align.BASELINE)
+        self.year_label.add_css_class("year-title")
+
         prev_button = Gtk.Button(label="‹")
         prev_button.add_css_class("nav-button")
         prev_button.connect("clicked", self.previous_month)
-
-        self.month_label = Gtk.Label()
-        self.month_label.set_hexpand(True)
-        self.month_label.add_css_class("month-title")
 
         next_button = Gtk.Button(label="›")
         next_button.add_css_class("nav-button")
         next_button.connect("clicked", self.next_month)
 
+        title.append(self.month_label)
+        title.append(self.year_label)
+        header.append(title)
         header.append(prev_button)
-        header.append(self.month_label)
         header.append(next_button)
 
         self.grid = Gtk.Grid()
@@ -127,17 +140,25 @@ class CalendarPopup(Gtk.Application):
         footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         footer.add_css_class("calendar-footer")
 
-        today_button = Gtk.Button(label="Hoje")
-        today_button.add_css_class("today-button")
-        today_button.connect("clicked", self.go_today)
+        today_label = Gtk.Label(label="HOJE")
+        today_label.set_valign(Gtk.Align.BASELINE)
+        today_label.add_css_class("today-label")
+        self.make_clickable(today_label)
 
-        hint = Gtk.Label(label=self.today.strftime("%d/%m/%Y"))
-        hint.set_hexpand(True)
-        hint.set_xalign(0)
-        hint.add_css_class("date-hint")
+        self.date_label = Gtk.Label(label=self.today.strftime("%d/%m/%Y"))
+        self.date_label.set_valign(Gtk.Align.BASELINE)
+        self.date_label.add_css_class("date-hint")
+        self.make_clickable(self.date_label)
 
-        footer.append(hint)
-        footer.append(today_button)
+        self.time_label = Gtk.Label(label=datetime.now().strftime("%H:%M"))
+        self.time_label.set_hexpand(True)
+        self.time_label.set_halign(Gtk.Align.END)
+        self.time_label.set_valign(Gtk.Align.BASELINE)
+        self.time_label.add_css_class("time-hint")
+
+        footer.append(today_label)
+        footer.append(self.date_label)
+        footer.append(self.time_label)
 
         root.append(header)
         root.append(self.grid)
@@ -145,6 +166,7 @@ class CalendarPopup(Gtk.Application):
 
         self.window.set_child(root)
         self.render_calendar()
+        GLib.timeout_add(1000, self.update_time_label)
         self.show_popup()
 
     def toggle(self):
@@ -269,7 +291,8 @@ class CalendarPopup(Gtk.Application):
             child = next_child
 
         month_name = MONTHS[self.month]
-        self.month_label.set_text(f"{month_name} {self.year}")
+        self.month_label.set_text(month_name)
+        self.year_label.set_text(str(self.year))
 
         for column, weekday in enumerate(WEEKDAYS):
             label = Gtk.Label(label=weekday)
@@ -309,10 +332,41 @@ class CalendarPopup(Gtk.Application):
             self.month += 1
         self.render_calendar()
 
-    def go_today(self, _button):
+    def go_today(self, *_args):
+        self.today = date.today()
         self.year = self.today.year
         self.month = self.today.month
+        self.update_date_label()
         self.render_calendar()
+
+    def make_clickable(self, widget):
+        click = Gtk.GestureClick()
+        click.connect("released", self.go_today)
+        widget.add_controller(click)
+
+    def update_date_label(self):
+        if self.date_label is not None:
+            self.date_label.set_text(self.today.strftime("%d/%m/%Y"))
+
+    def update_time_label(self):
+        if self.time_label is not None:
+            self.time_label.set_text(datetime.now().strftime("%H:%M"))
+        return GLib.SOURCE_CONTINUE
+
+    def schedule_midnight_refresh(self):
+        now = datetime.now()
+        next_midnight = (now + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        delay_ms = max(1, int((next_midnight - now).total_seconds() * 1000) + 50)
+        GLib.timeout_add(delay_ms, self.refresh_after_midnight)
+
+    def refresh_after_midnight(self):
+        self.today = date.today()
+        self.update_date_label()
+        self.render_calendar()
+        self.schedule_midnight_refresh()
+        return GLib.SOURCE_REMOVE
 
     def on_close(self, _window):
         self.hide_popup()
@@ -352,8 +406,14 @@ class CalendarPopup(Gtk.Application):
         }
 
         .month-title {
-            font-size: 18px;
+            font-size: 32px;
             font-weight: 700;
+        }
+
+        .year-title {
+            margin-left: 4px;
+            font-size: 32px;
+            font-weight: 200;
         }
 
         .nav-button {
@@ -367,8 +427,7 @@ class CalendarPopup(Gtk.Application):
             font-size: 22px;
         }
 
-        .nav-button:hover,
-        .today-button:hover {
+        .nav-button:hover {
             background: alpha(#ffffff, 0.14);
         }
 
@@ -399,7 +458,7 @@ class CalendarPopup(Gtk.Application):
         }
 
         .weekend {
-            color: #0a84ff;
+            
         }
 
         .outside-month {
@@ -420,17 +479,20 @@ class CalendarPopup(Gtk.Application):
         }
 
         .date-hint {
-            color: #8e8e93;
-            font-size: 13px;
+            color: #f5f5f7;
+            font-size: 16px;
+            font-weight: 300;
         }
 
-        .today-button {
-            min-height: 32px;
-            padding: 0 14px;
-            border-radius: 999px;
-            border: 1px solid alpha(#ffffff, 0.08);
-            background: alpha(#ffffff, 0.08);
+        .time-hint {
+            color: #8e8e93;
+            font-size: 17px;
+            font-weight: 500;
+        }
+
+        .today-label {
             color: #f5f5f7;
+            font-size: 16px;
             font-weight: 700;
         }
         """

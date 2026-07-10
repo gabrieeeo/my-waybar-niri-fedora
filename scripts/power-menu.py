@@ -27,6 +27,7 @@ except (ImportError, ValueError):
 PID_FILE = "/tmp/waybar-power-menu.pid"
 ACTIONS = [
     ("Desligar", ["systemctl", "poweroff"], "system-shutdown-symbolic", "danger"),
+    ("Reiniciar", ["systemctl", "reboot"], "system-reboot-symbolic", None),
     ("Suspender", ["systemctl", "suspend"], "weather-clear-night-symbolic", None),
     ("Bloquear", ["swaylock", "-f"], "changes-prevent-symbolic", None),
     ("Sair", ["niri", "msg", "action", "quit"], "system-log-out-symbolic", None),
@@ -68,7 +69,7 @@ class PowerMenu(Gtk.Application):
         self.window.set_title("Menu de energia")
         self.window.set_decorated(False)
         self.window.set_resizable(False)
-        self.window.set_default_size(220, 210)
+        self.window.set_default_size(220, 260)
         self.window.connect("close-request", self.on_close)
         self.configure_layer_shell()
         self.create_click_shield()
@@ -90,7 +91,7 @@ class PowerMenu(Gtk.Application):
             row.set_valign(Gtk.Align.CENTER)
 
             icon = Gtk.Image.new_from_icon_name(icon_name)
-            icon.set_pixel_size(18)
+            icon.set_pixel_size(26)
             icon.add_css_class("action-icon")
 
             text = Gtk.Label(label=label)
