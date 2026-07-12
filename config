@@ -5,7 +5,7 @@
     "height": 24,
     "spacing": 5,
     "modules-left": [
-      "niri/workspaces"
+      "hyprland/workspaces"
     ],
     "modules-center": [
       "clock"
@@ -20,7 +20,7 @@
       "custom/power",
       "tray"
     ],
-    "niri/workspaces": {
+    "hyprland/workspaces": {
       "format": "{icon}",
       "format-icons": {
         "focused": "●",
