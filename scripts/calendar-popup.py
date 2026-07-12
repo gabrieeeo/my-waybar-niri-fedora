@@ -395,7 +395,7 @@ class CalendarPopup(Gtk.Application):
         .calendar-shell {
             margin: 10px;
             padding: 18px;
-            background: alpha(#18181b, 0.92);
+            background: rgba(24, 24, 27, 0.95);
             color: #f5f5f7;
             border: 1px solid alpha(#ffffff, 0.10);
             border-radius: 18px;

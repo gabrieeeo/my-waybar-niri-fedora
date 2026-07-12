@@ -291,7 +291,7 @@ class PowerMenu(Gtk.Application):
         .power-shell {
             margin: 10px;
             padding: 10px;
-            background: alpha(#18181b, 0.94);
+            background: rgba(24, 24, 27, 0.95);
             color: #f5f5f7;
             border: 1px solid alpha(#ffffff, 0.10);
             border-radius: 16px;
