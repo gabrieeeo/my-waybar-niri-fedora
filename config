@@ -5,7 +5,8 @@
     "height": 24,
     "spacing": 5,
     "modules-left": [
-      "hyprland/workspaces"
+      "hyprland/workspaces",
+      "wlr/taskbar"
     ],
     "modules-center": [
       "clock"
@@ -28,6 +29,13 @@
         "default": "○",
         "empty": "○"
       }
+    },
+    "wlr/taskbar": {
+      "format": "{title:.16}",
+      "tooltip-format": "{title}",
+      "all-outputs": true,
+      "on-click": "activate",
+      "on-click-middle": "close"
     },
     "mpris": {
       "format": "{status_icon} {dynamic}",

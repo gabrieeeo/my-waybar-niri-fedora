@@ -57,6 +57,31 @@ window#waybar {
   text-shadow: none;
 }
 
+#taskbar button {
+  background: transparent;
+  color: #8e8e93;
+  border: none;
+  box-shadow: none;
+  border-radius: 1rem;
+}
+
+#taskbar button.active {
+  color: #f5f5f7;
+  background: transparent;
+  padding: 0 12px;
+}
+
+#taskbar button.minimized {
+  opacity: 0.45;
+}
+
+#taskbar button:hover {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  text-shadow: none;
+}
+
 .modules-left > widget:first-child > #workspaces {
   margin-left: 0;
 }

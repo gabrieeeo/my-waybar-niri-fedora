@@ -58,7 +58,7 @@ ACTIONS = (
         ("/home/gabriel/.config/waybar/scripts/lock-screen.sh",),
         "changes-prevent-symbolic",
     ),
-    PowerAction("Sair", ("niri", "msg", "action", "quit"), "system-log-out-symbolic"),
+    PowerAction("Sair", ("hyprctl", "dispatch", "hl.dsp.exit()"), "system-log-out-symbolic"),
 )
 
 
